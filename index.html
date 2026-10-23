@@ -102,7 +102,7 @@ try{const j=JSON.parse(localStorage.getItem('otakasah')||'null');if(j&&j.prog)S=
 let totalStars=S.stars||0,diff=S.diff||0;
 function save(){try{S.stars=totalStars;S.diff=diff;S.snd=snd;S.mus=mus;localStorage.setItem('otakasah',JSON.stringify(S))}catch(e){}}
 function sv(k,v){S.prog[k][diff]=v;save()}
-const DF=[{e:'😁',n:'Mudah'},{e:'🙂',n:'Sedang'},{e:'🫪',n:'Susah'}];
+const DF=[{e:'😁',n:'Mudah'},{e:'🙂',n:'Sedang'},{e:'😤',n:'Susah'}];
 let snd=S.snd!==false,mus=S.mus!==false,AC,OUT,mBus,mT=0,mG,rc=0,susT,mi=0;
 function ctx(){if(!AC){AC=new(window.AudioContext||window.webkitAudioContext)();OUT=AC.createGain();OUT.gain.value=1;OUT.connect(AC.destination)}return AC}
 const tone=(f,s,d,ty='sine',v=.18)=>{const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime+s;o.type=ty;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(OUT);o.start(t);o.stop(t+d+.05)};
