@@ -144,7 +144,7 @@ const stars=n=>'⭐'.repeat(n)+'☆'.repeat(3-n);
 
 function home(){rc=0;
  app.innerHTML=`<div class="top"><span style="display:flex;gap:8px"><button class="ghost" onclick="toggleSnd()" aria-label="Efek suara">${snd?'🔊':'🔇'}</button><button class="ghost" onclick="toggleMus()" aria-label="Musik latar">${mus?'🎵':'🔕'}</button></span><span class="pill">⭐ ${totalStars}</span></div>
- <h1>Otak Asah 🧠</h1><p>Pilih tingkat kesulitan, lalu pilih tantangan:</p>
+ <h1>Asah Otak Kamu 🧠</h1><p>Pilih tingkat kesulitan, lalu pilih tantangan:</p>
  <div class="seg" role="group" aria-label="Tingkat kesulitan">${DF.map((d,i)=>`<button class="${i===diff?'on':''}" aria-pressed="${i===diff}" onclick="setDiff(${i})">${d.e}<br>${d.n}</button>`).join('')}</div>
  <div class="menu">
  <button onclick="pattern(${S.prog.p[diff]})"><span class="ico">🔢</span><span><b>Pola Angka</b><small>Lanjut dari level ${S.prog.p[diff]} dari 6</small></span></button>
