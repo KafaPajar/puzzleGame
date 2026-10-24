@@ -70,11 +70,20 @@ input{width:100%;font:inherit;font-weight:700;font-size:1.2rem;padding:12px 14px
 @keyframes droop{to{transform:translateY(4px) scaleY(.95)}}
 #mas.happy,#mas.proud{animation:hop .6s ease 2}
 #mas.sad{animation:droop .4s ease forwards;transform-origin:50% 100%}
+.ach{display:grid;gap:8px}
+.ac{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:16px;border:2px solid var(--line);background:var(--bg);opacity:.65}
+.ac.on{opacity:1;border-color:var(--pri);background:var(--acc)}
+.ac b{display:block}.ac small{color:var(--mute);font-weight:500}
+.ac .ico{font-size:1.7rem;width:42px}
+.cmb{color:var(--ok);font-weight:800}
+#tt{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translate(-50%,-160%);display:flex;gap:10px;align-items:center;background:var(--card);color:var(--ink);border:2px solid var(--pri);border-radius:16px;padding:8px 16px;font-weight:700;max-width:92vw;z-index:9;pointer-events:none;transition:transform .3s}
+#tt.on{transform:translate(-50%,0)}#tt small{display:block;color:var(--mute);font-weight:500;line-height:1.2}#tt .ico{font-size:1.6rem;width:auto}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
 <main id="app"></main>
+<div id="tt" role="status" aria-live="polite"></div>
 <div id="mw"><div id="mb" aria-live="polite"></div>
 <svg id="mas" class="idle" viewBox="0 0 100 100" aria-hidden="true">
 <g class="wl"><ellipse cx="17" cy="62" rx="9" ry="16" fill="var(--ow-wing)" transform="rotate(12 17 62)"/></g>
@@ -97,7 +106,7 @@ input{width:100%;font:inherit;font-weight:700;font-size:1.2rem;padding:12px 14px
 const $=s=>document.querySelector(s), app=$('#app');
 const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
 const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=rnd(0,i);[a[i],a[j]]=[a[j],a[i]]}return a};
-let S={stars:0,diff:0,snd:true,mus:true,prog:{p:[1,1,1],s:[1,1,1],r:[0,0,0]}};
+let S={stars:0,diff:0,snd:true,mus:true,prog:{p:[1,1,1],s:[1,1,1],r:[0,0,0]},ach:{},st:{c:0,cmb:0,best:0,clr:{}}};
 try{const j=JSON.parse(localStorage.getItem('otakasah')||'null');if(j&&j.prog)S=Object.assign(S,j)}catch(e){}
 let totalStars=S.stars||0,diff=S.diff||0;
 function save(){try{S.stars=totalStars;S.diff=diff;S.snd=snd;S.mus=mus;localStorage.setItem('otakasah',JSON.stringify(S))}catch(e){}}
@@ -106,7 +115,7 @@ const DF=[{e:'😁',n:'Mudah'},{e:'🙂',n:'Sedang'},{e:'😤',n:'Susah'}];
 let snd=S.snd!==false,mus=S.mus!==false,AC,OUT,mBus,mT=0,mG,rc=0,susT,mi=0;
 function ctx(){if(!AC){AC=new(window.AudioContext||window.webkitAudioContext)();OUT=AC.createGain();OUT.gain.value=1;OUT.connect(AC.destination)}return AC}
 const tone=(f,s,d,ty='sine',v=.18)=>{const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime+s;o.type=ty;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(OUT);o.start(t);o.stop(t+d+.05)};
-const SFX={tap:()=>tone(520,0,.08,'triangle',.12),ok:()=>{tone(660,0,.15);tone(880,.12,.25)},no:()=>{tone(220,0,.2,'sawtooth',.07);tone(165,.15,.25,'sawtooth',.07)},hint:()=>{tone(784,0,.12,'triangle');tone(988,.1,.18,'triangle')},win:()=>[523,659,784,1047].forEach((f,i)=>tone(f,i*.12,.3))};
+const SFX={combo:()=>[523,659,784,1047,1319].forEach((f,i)=>tone(f,i*.07,.22,'triangle',.16)),ach:()=>[784,988,1319].forEach((f,i)=>tone(f,.45+i*.1,.25,'triangle',.12)),tap:()=>tone(520,0,.08,'triangle',.12),ok:()=>{tone(660,0,.15);tone(880,.12,.25)},no:()=>{tone(220,0,.2,'sawtooth',.07);tone(165,.15,.25,'sawtooth',.07)},hint:()=>{tone(784,0,.12,'triangle');tone(988,.1,.18,'triangle')},win:()=>[523,659,784,1047].forEach((f,i)=>tone(f,i*.12,.3))};
 function play(n){setTimeout(save,0);if(!snd)return;try{ctx();if(AC.state==='suspended'&&!document.hidden)AC.resume();SFX[n]()}catch(e){}}
 function toggleSnd(){snd=!snd;play('tap');home()}
 function mtone(f,t,d,ty,v,a){const o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v,t+a);g.gain.linearRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(mBus);o.start(t);o.stop(t+d+.1)}
@@ -133,13 +142,52 @@ function wakeAudio(){clearTimeout(susT);if(!AC)return;try{AC.resume();const t=AC
 document.addEventListener('visibilitychange',()=>document.hidden?sleepAudio():wakeAudio());
 window.addEventListener('pagehide',()=>{clearInterval(mT);mT=0;try{OUT.gain.setTargetAtTime(0,AC.currentTime,.02)}catch(e){}});
 window.addEventListener('pageshow',e=>{if(e.persisted)wakeAudio()});
-function resetAll(){if(!rc){rc=1;$('#rs').textContent='Ketuk lagi untuk menghapus semua progres';return}rc=0;totalStars=0;S.prog={p:[1,1,1],s:[1,1,1],r:[0,0,0]};save();home()}
+function resetAll(){if(!rc){rc=1;$('#rs').textContent='Ketuk lagi untuk menghapus progres & pencapaian';return}rc=0;totalStars=0;streak=0;S.prog={p:[1,1,1],s:[1,1,1],r:[0,0,0]};S.ach={};S.st={c:0,cmb:0,best:0,clr:{}};save();home()}
+
+/* ---------- Pencapaian & Combo Strike ---------- */
+let streak=0,achT=0;
+const ACH=[
+ {id:'first',e:'🌱',n:'Langkah Pertama',d:'Jawab 1 soal dengan benar'},
+ {id:'combo3',e:'🔥',n:'Combo Strike!',d:'Jawab benar 3 kali berturut-turut'},
+ {id:'combo6',e:'⚡',n:'Api Membara',d:'Raih 6 jawaban benar berturut-turut'},
+ {id:'perfect',e:'🌟',n:'Sempurna',d:'Dapat 3 bintang di satu soal'},
+ {id:'grit',e:'💪',n:'Pantang Menyerah',d:'Jawab benar setelah salah 3 kali atau lebih'},
+ {id:'hard',e:'🧠',n:'Otak Baja',d:'Jawab benar di tingkat Susah'},
+ {id:'slide3',e:'🧩',n:'Si Cepat',d:'Selesaikan Geser Angka dengan 3 bintang'},
+ {id:'clear',e:'🎉',n:'Penamat',d:'Tamatkan satu tantangan'},
+ {id:'all3',e:'👑',n:'Juara Tiga Tantangan',d:'Tamatkan Pola Angka, Geser Angka, dan Teka-Teki'},
+ {id:'correct25',e:'📚',n:'Kolektor Jawaban',d:'Total 25 jawaban benar'},
+ {id:'stars50',e:'⭐',n:'Pemburu Bintang',d:'Kumpulkan 50 bintang'}
+];
+const tq=[];let tb=0;
+function toast(h){tq.push(h);if(!tb)nextToast()}
+function nextToast(){const e=$('#tt');if(!tq.length){tb=0;e.classList.remove('on');return}tb=1;e.innerHTML=tq.shift();e.classList.add('on');setTimeout(()=>{e.classList.remove('on');setTimeout(nextToast,350)},2600)}
+function unlock(id){if(S.ach[id])return;const a=ACH.find(x=>x.id===id);if(!a)return;S.ach[id]=1;save();
+ toast(`<span class="ico">${a.e}</span><span>Pencapaian baru!<small>${a.n}</small></span>`);
+ if(!achT){achT=setTimeout(()=>achT=0,400);play('ach')}}
+const chkStar=()=>{if(totalStars>=50)unlock('stars50')};
+const pillTxt=()=>`${DF[diff].e} ⭐ ${totalStars}${streak>0?` 🔥${streak}`:''}`;
+function refreshPill(){const p=$('#pl');if(p)p.textContent=pillTxt()}
+function onCorrect(st,wrong){
+ const T=S.st;T.c++;streak++;if(streak>T.best)T.best=streak;
+ const combo=streak%3===0,bonus=combo?1:0;
+ if(combo){totalStars+=bonus;T.cmb++}
+ unlock('first');if(combo)unlock('combo3');if(streak>=6)unlock('combo6');
+ if(st===3)unlock('perfect');if(wrong>=3)unlock('grit');if(diff===2)unlock('hard');if(T.c>=25)unlock('correct25');
+ chkStar();save();refreshPill();return{combo,bonus}}
+function onWrong(){if(streak){streak=0;refreshPill()}}
+const cx=r=>r.combo?` <span class="cmb">🔥 COMBO STRIKE ×${streak}! +${r.bonus}⭐</span>`:streak%3===2?' · Satu lagi untuk Combo Strike! 🔥':'';
+function achievements(){
+ const n=ACH.filter(a=>S.ach[a.id]).length,T=S.st;
+ app.innerHTML=`${bar('Pencapaian',`${n} dari ${ACH.length} terbuka`)}<div class="prog"><i style="width:${n/ACH.length*100}%"></i></div>
+ <div class="panel"><div class="row" style="margin:0 0 12px"><span class="pill">🔥 Beruntun terbaik: ${T.best}</span><span class="pill">⚡ Combo: ${T.cmb}</span></div>
+ <div class="ach">${ACH.map(a=>{const u=!!S.ach[a.id];return `<div class="ac${u?' on':''}"><span class="ico">${u?a.e:'🔒'}</span><span><b>${a.n}</b><small>${a.d}</small></span></div>`}).join('')}</div></div>`}
 document.addEventListener('click',e=>{if(mus)musicOn();if(e.target.closest('button')&&!e.target.closest('.opts,.tile,#hb,#go'))play('tap')});
 const MSG={happy:['Yey, benar!','Mantap!','Kamu pintar!'],proud:['Luar biasa! Aku bangga!','Sempurna!'],sad:['Yah, coba lagi ya','Tidak apa-apa, semangat!']};
 let moodT;
 function mood(m,t){const s=$('#mas'),b=$('#mb');clearTimeout(moodT);s.setAttribute('class','');void s.getBoundingClientRect();s.setAttribute('class',m);const a=MSG[m];b.textContent=t||(a?a[rnd(0,a.length-1)]:'');b.classList.toggle('on',!!b.textContent);if(m!=='idle')moodT=setTimeout(()=>mood('idle'),2400)}
 function setDiff(n){diff=n;home()}
-const bar=(title,sub)=>`<div class="top"><button class="ghost" onclick="home()" aria-label="Kembali">←</button><h2>${title}</h2><span class="pill">${DF[diff].e} ⭐ ${totalStars}</span></div>${sub?`<p>${sub}</p>`:''}`;
+const bar=(title,sub)=>`<div class="top"><button class="ghost" onclick="home()" aria-label="Kembali">←</button><h2>${title}</h2><span class="pill" id="pl">${pillTxt()}</span></div>${sub?`<p>${sub}</p>`:''}`;
 const stars=n=>'⭐'.repeat(n)+'☆'.repeat(3-n);
 
 function home(){rc=0;
@@ -150,6 +198,7 @@ function home(){rc=0;
  <button onclick="pattern(${S.prog.p[diff]})"><span class="ico">🔢</span><span><b>Pola Angka</b><small>Lanjut dari level ${S.prog.p[diff]} dari 6</small></span></button>
  <button onclick="slide(${S.prog.s[diff]})"><span class="ico">🧩</span><span><b>Geser Angka</b><small>Lanjut dari level ${S.prog.s[diff]} dari 4</small></span></button>
  <button onclick="riddle(${S.prog.r[diff]})"><span class="ico">💡</span><span><b>Teka-Teki</b><small>Lanjut dari soal ${S.prog.r[diff]+1}</small></span></button>
+ <button onclick="achievements()"><span class="ico">🏆</span><span><b>Pencapaian</b><small>${ACH.filter(a=>S.ach[a.id]).length} dari ${ACH.length} terbuka · beruntun terbaik ${S.st.best}</small></span></button>
  <button id="rs" onclick="resetAll()" style="justify-content:center;font-size:.95rem;padding:10px;color:var(--mute)">Mulai dari awal</button>
  </div>`;
 }
@@ -183,10 +232,10 @@ function pattern(l){
  $('#hb').onclick=()=>{hint=true;play('hint');$('#m').className='msg';$('#m').textContent=q.h};
  document.querySelectorAll('.opts button').forEach(b=>b.onclick=()=>{
   if(over)return;const ok=+b.dataset.v===q.ans;
-  if(ok){over=true;play('ok');b.classList.add('ok');const st=Math.max(1,3-wrong-(hint?1:0));totalStars+=st;
-   $('#m').className='msg ok';$('#m').textContent=`Benar! ${stars(st)}`;mood(st===3?'proud':'happy');
+  if(ok){over=true;b.classList.add('ok');const st=Math.max(1,3-wrong-(hint?1:0));totalStars+=st;const cb=onCorrect(st,wrong);play(cb.combo?'combo':'ok');
+   $('#m').className='msg ok';$('#m').innerHTML=`Benar! ${stars(st)}${cx(cb)}`;cb.combo?mood('proud','Combo Strike! 🔥'):mood(st===3?'proud':'happy');
    $('.row').innerHTML=`<button onclick="pattern(${l+1})">Lanjut</button>`;
-  }else{wrong++;play('no');b.classList.add('no');b.disabled=true;$('#m').className='msg no';$('#m').textContent='Belum tepat, coba cari aturannya lagi.';mood('sad')}
+  }else{wrong++;onWrong();play('no');b.classList.add('no');b.disabled=true;$('#m').className='msg no';$('#m').textContent='Belum tepat, coba cari aturannya lagi.';mood('sad')}
  });
 }
 
@@ -203,7 +252,7 @@ function slide(l){
   document.querySelectorAll('.tile').forEach(t=>t.onclick=()=>{
    if(won)return;const i=+t.dataset.i,z=b.indexOf(0);
    if(nb(i).includes(z)){b[z]=b[i];b[i]=0;moves++;play('tap');
-    if(b.join()==='1,2,3,4,5,6,7,8,0'){won=true;play('win');const st=moves<=par?3:moves<=par*2?2:1;totalStars+=st;draw();
+    if(b.join()==='1,2,3,4,5,6,7,8,0'){won=true;play('win');const st=moves<=par?3:moves<=par*2?2:1;totalStars+=st;if(st===3)unlock('slide3');chkStar();refreshPill();draw();
      $('#m').className='msg ok';$('#m').textContent=`Selesai dalam ${moves} langkah! ${stars(st)}`;mood(st===3?'proud':'happy');
      $('.row').innerHTML=`<button onclick="slide(${l+1})">Lanjut</button>`;return}
     draw()}
@@ -251,17 +300,17 @@ function riddle(i){
  <div class="row"><button class="ghost" id="hb">💡 Petunjuk (2)</button><button class="ghost" id="sk">Lewati</button></div></div>`;
  const m=$('#m'),chk=()=>{
   if(over)return;const v=$('#ans').value.trim().toLowerCase();if(!v)return;
-  if(r.a.includes(v)){over=true;play('ok');const st=Math.max(1,3-used-Math.min(tries,1));totalStars+=st;
-   m.className='msg ok';m.textContent=`Tepat! ${stars(st)}`;mood(st===3?'proud':'happy');$('.row:last-child').innerHTML=`<button onclick="riddle(${i+1})">Lanjut</button>`}
-  else{tries++;play('no');m.className='msg no';m.textContent='Belum benar, coba pikirkan dari sudut lain.';mood('sad')}
+  if(r.a.includes(v)){over=true;const st=Math.max(1,3-used-Math.min(tries,1));totalStars+=st;const cb=onCorrect(st,tries);play(cb.combo?'combo':'ok');
+   m.className='msg ok';m.innerHTML=`Tepat! ${stars(st)}${cx(cb)}`;cb.combo?mood('proud','Combo Strike! 🔥'):mood(st===3?'proud':'happy');$('.row:last-child').innerHTML=`<button onclick="riddle(${i+1})">Lanjut</button>`}
+  else{tries++;onWrong();play('no');m.className='msg no';m.textContent='Belum benar, coba pikirkan dari sudut lain.';mood('sad')}
  };
  $('#go').onclick=chk;document.querySelectorAll('#ch button').forEach(b=>b.onclick=()=>{$('#ans').value=b.dataset.c;chk()});$('#ans').onkeydown=e=>{if(e.key==='Enter')chk()};
  $('#hb').onclick=()=>{if(used<2){play('hint');m.className='msg';m.textContent='Petunjuk: '+r.h[used];used++;$('#hb').textContent=`💡 Petunjuk (${2-used})`;if(used===2)$('#hb').disabled=true}};
- $('#sk').onclick=()=>{if(!over){over=true;m.className='msg';m.textContent=`Jawabannya: ${r.a[0]}.`;$('.row:last-child').innerHTML=`<button onclick="riddle(${i+1})">Lanjut</button>`}};
+ $('#sk').onclick=()=>{if(!over){over=true;onWrong();m.className='msg';m.textContent=`Jawabannya: ${r.a[0]}.`;$('.row:last-child').innerHTML=`<button onclick="riddle(${i+1})">Lanjut</button>`}};
 }
 
 function done(name,again){
- window._again=again;play('win');mood('proud','Kamu menamatkannya!');
+ window._again=again;S.st.clr[name]=1;unlock('clear');if(['Pola Angka','Geser Angka','Teka-Teki'].every(k=>S.st.clr[k]))unlock('all3');chkStar();save();play('win');mood('proud','Kamu menamatkannya!');
  app.innerHTML=`${bar('Hebat!')}<div class="panel"><div class="stars">🎉</div><h2 style="text-align:center">Kamu menamatkan ${name}</h2>
  <p style="text-align:center">Total bintang: ${totalStars}</p>
  <div class="row"><button class="ghost" onclick="_again()">Main lagi</button><button onclick="home()">Menu utama</button></div></div>`;
